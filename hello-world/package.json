@@ -1,0 +1,24 @@
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "description": "A minimal HTML+TypeScript hello-world template for vibe projects",
+  "private": true,
+  "scripts": {
+    "clean": "rimraf dist",
+    "prep": "mkdir -p dist",
+    "build-html": "copyfiles index.html dist",
+    "build-js": "browserify src/main.ts -p [tsify] --debug | terser -c --source-map \"content='inline',url='bundle.js.map'\" -o dist/bundle.js",
+    "build": "npm run prep && npm run build-js && npm run build-html",
+    "serve": "npx serve dist/"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.1",
+    "copyfiles": "^1.0.0",
+    "rimraf": "^2.5.4",
+    "serve": "^11.3.0",
+    "terser": "^5.43.1",
+    "tsify": "^4.0.2",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}

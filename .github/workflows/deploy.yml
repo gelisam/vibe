@@ -1,0 +1,61 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Project to deploy (must match a top-level directory name)'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: master
+
+    - name: Validate project
+      run: |
+        if [ ! -f "${{ github.event.inputs.project }}/package.json" ]; then
+          echo "Error: '${{ github.event.inputs.project }}' is not a valid project directory (no package.json found)."
+          exit 1
+        fi
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ${{ github.event.inputs.project }}
+
+    - name: Build project
+      run: npm run build
+      working-directory: ${{ github.event.inputs.project }}
+
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to server
+      run: |
+        PROJECT="${{ github.event.inputs.project }}"
+        DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT"
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $DEPLOY_DIR"
+        if [ -n "$(ls -A "$PROJECT/dist" 2>/dev/null)" ]; then
+          scp -r "$PROJECT/dist/"* ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:"$DEPLOY_DIR/"
+        fi
+
+    - name: Print deploy URL
+      run: |
+        echo "✅ Deployed to: ${{ secrets.BASE_URL }}/${{ github.event.inputs.project }}"
