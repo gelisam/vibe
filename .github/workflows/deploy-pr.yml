@@ -1,0 +1,102 @@
+name: Deploy PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      projects: ${{ steps.detect.outputs.projects }}
+    steps:
+    - name: Detect changed projects
+      id: detect
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const files = await github.paginate(
+            github.rest.pulls.listFiles,
+            {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            }
+          );
+          const projectDirs = new Set();
+          for (const file of files) {
+            const parts = file.filename.split('/');
+            if (parts.length > 1) {
+              projectDirs.add(parts[0]);
+            }
+          }
+          const projects = Array.from(projectDirs).join(' ');
+          core.setOutput('projects', projects);
+          console.log('Detected projects:', projects);
+
+  deploy:
+    needs: detect
+    runs-on: ubuntu-latest
+    if: needs.detect.outputs.projects != ''
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Build and deploy changed projects
+      id: build_deploy
+      run: |
+        DEPLOYED_PROJECTS=""
+        for PROJECT in ${{ needs.detect.outputs.projects }}; do
+          if [ -f "$PROJECT/package.json" ]; then
+            echo "Building $PROJECT..."
+            cd "$PROJECT"
+            npm ci
+            npm run build
+
+            echo "Deploying $PROJECT..."
+            DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip"
+            ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $DEPLOY_DIR"
+            if [ -n "$(ls -A dist 2>/dev/null)" ]; then
+              scp -r dist/* ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:"$DEPLOY_DIR/"
+            fi
+
+            DEPLOYED_PROJECTS="$DEPLOYED_PROJECTS $PROJECT"
+            cd ..
+          fi
+        done
+        echo "deployed_projects=${DEPLOYED_PROJECTS# }" >> $GITHUB_OUTPUT
+
+    - name: Comment PR with deploy URLs
+      if: steps.build_deploy.outputs.deployed_projects != ''
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const deployedProjects = '${{ steps.build_deploy.outputs.deployed_projects }}'.trim().split(/\s+/).filter(Boolean);
+          const urls = deployedProjects.map(p => `- 📱 **${p}**: ${{ secrets.BASE_URL }}/${p}-wip`).join('\n');
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `🚀 **PR deployed successfully!**\n\n${urls}\n\nThis deployment will be updated automatically when you push new commits to this PR.`
+          });
