@@ -72,6 +72,19 @@ function canvasToGrid(cx: number, cy: number): [number, number] {
     ];
 }
 
+/**
+ * Convert a client (viewport) coordinate to a canvas internal pixel coordinate,
+ * accounting for any difference between the canvas's CSS display size and its
+ * internal resolution (e.g. on mobile when the URL bar shows/hides).
+ */
+function clientToCanvas(clientX: number, clientY: number): [number, number] {
+    const r = canvas.getBoundingClientRect();
+    return [
+        (clientX - r.left) * (canvas.width  / r.width),
+        (clientY - r.top)  * (canvas.height / r.height),
+    ];
+}
+
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 function draw(): void {
@@ -214,14 +227,14 @@ function clampOrigin(): void {
 // ─── Mouse events ─────────────────────────────────────────────────────────────
 
 canvas.addEventListener('click', (e: MouseEvent) => {
-    const r = canvas.getBoundingClientRect();
-    const [gx, gy] = canvasToGrid(e.clientX - r.left, e.clientY - r.top);
+    const [cx, cy] = clientToCanvas(e.clientX, e.clientY);
+    const [gx, gy] = canvasToGrid(cx, cy);
     tryMove(gx, gy);
 });
 
 canvas.addEventListener('mousemove', (e: MouseEvent) => {
-    const r = canvas.getBoundingClientRect();
-    const [gx, gy] = canvasToGrid(e.clientX - r.left, e.clientY - r.top);
+    const [cx, cy] = clientToCanvas(e.clientX, e.clientY);
+    const [gx, gy] = canvasToGrid(cx, cy);
     const newHover: [number, number] | null =
         (gx >= 0 && gy >= 0) ? [gx, gy] : null;
 
@@ -291,11 +304,9 @@ canvas.addEventListener('touchmove', (e: TouchEvent) => {
         const dy = e.touches[0].clientY - touchLastY;
         touchMovedPx += Math.abs(dx) + Math.abs(dy);
 
-        // Drag right → content moves right → lower x visible → originCx increases
-        // Drag down  → content moves down  → higher y visible → originCy increases
-        // (opposite of wheel, matching "content follows finger")
+        // Content follows finger: drag right → originCx increases, drag up → originCy decreases
         originCx += dx;
-        originCy -= dy;   // invert: drag up → see higher y (same direction as "up" in the grid)
+        originCy += dy;
         touchLastX = e.touches[0].clientX;
         touchLastY = e.touches[0].clientY;
         clampOrigin();
@@ -306,11 +317,11 @@ canvas.addEventListener('touchmove', (e: TouchEvent) => {
 canvas.addEventListener('touchend', (e: TouchEvent) => {
     e.preventDefault();
     if (touchMovedPx < TOUCH_TAP_THRESHOLD && e.changedTouches.length === 1) {
-        const r = canvas.getBoundingClientRect();
-        const [gx, gy] = canvasToGrid(
-            e.changedTouches[0].clientX - r.left,
-            e.changedTouches[0].clientY - r.top,
+        const [cx, cy] = clientToCanvas(
+            e.changedTouches[0].clientX,
+            e.changedTouches[0].clientY,
         );
+        const [gx, gy] = canvasToGrid(cx, cy);
         tryMove(gx, gy);
     }
 }, { passive: false });
@@ -338,12 +349,10 @@ undoBtn.addEventListener('click', undo);
 // ─── Resize ───────────────────────────────────────────────────────────────────
 
 function resizeCanvas(): void {
-    const toolbar = document.getElementById('toolbar') as HTMLElement;
-    const newH = window.innerHeight - toolbar.offsetHeight;
     // Keep the y=0 boundary at the same distance from the bottom on resize
     const bottomMargin = canvas.height > 0 ? canvas.height - originCy : CELL_SIZE;
-    canvas.width  = window.innerWidth;
-    canvas.height = newH;
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
     originCy = canvas.height - bottomMargin;
     clampOrigin();
     draw();
@@ -354,9 +363,8 @@ window.addEventListener('resize', resizeCanvas);
 // ─── Initialise ───────────────────────────────────────────────────────────────
 
 (function init(): void {
-    const toolbar = document.getElementById('toolbar') as HTMLElement;
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight - toolbar.offsetHeight;
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
     originCx = CELL_SIZE;          // x=0 boundary 1 cell from left edge
     originCy = canvas.height - CELL_SIZE; // y=0 boundary 1 cell from bottom edge
     draw();
