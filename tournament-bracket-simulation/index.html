@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Bracket Simulation</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        h1 {
+            font-size: 1.3em;
+            margin-bottom: 6px;
+            color: #e94560;
+        }
+        #stats {
+            font-size: 1.1em;
+            margin-bottom: 6px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        #stats span { font-weight: bold; color: #0f3460; }
+        .stat-value { color: #e94560 !important; font-size: 1.2em; }
+        #controls {
+            margin-bottom: 8px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        #controls label {
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        canvas {
+            border: 1px solid #16213e;
+            border-radius: 8px;
+            background: #16213e;
+            max-width: 100%;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tournament Bracket Simulation</h1>
+    <div id="stats">
+        Simulations: <span class="stat-value" id="total-sims">0</span> &nbsp;|&nbsp;
+        Alex vs Miguel: <span class="stat-value" id="meet-pct">0.00%</span>
+    </div>
+    <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#4fc3f7"></span> Alex</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ff7043"></span> Miguel</div>
+    </div>
+    <div id="controls">
+        <label><input type="checkbox" id="animate-toggle" checked> Show animation</label>
+        <label>Speed: <input type="range" id="speed-slider" min="1" max="100" value="20"></label>
+    </div>
+    <canvas id="bracket-canvas" width="1100" height="520"></canvas>
+    <script src="bundle.js"></script>
+</body>
+</html>
