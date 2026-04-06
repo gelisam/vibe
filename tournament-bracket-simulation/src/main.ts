@@ -154,13 +154,12 @@ function drawStickFigure(
   ctx.restore();
 }
 
-/** Draw an "eliminated" X over a stick figure */
-function drawEliminated(x: number, y: number, color: string, size: number = 10) {
+/** Draw an "eliminated" X on top of a stick figure */
+function drawEliminated(x: number, y: number, _color: string, size: number = 10) {
   ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.4;
-  const s = size * 0.5;
+  ctx.strokeStyle = '#ffeb3b';
+  ctx.lineWidth = 3;
+  const s = size * 0.7;
   ctx.beginPath();
   ctx.moveTo(x - s, y - s);
   ctx.lineTo(x + s, y + s);
@@ -477,16 +476,13 @@ function tick(timestamp: number) {
   lastFrameTime = timestamp;
 
   if (!shouldAnimate()) {
-    // Run many simulations per frame
+    // Run many simulations per frame, only update numbers
     const batchSize = Math.max(1, Math.floor(Math.pow(10, speedSlider.valueAsNumber / 20)));
     for (let i = 0; i < batchSize; i++) {
       const sim = simulate();
       totalSims++;
       if (sim.metInRound >= 0) totalMet++;
     }
-    // Draw the last simulation
-    const lastSim = simulate();
-    drawStaticBracket(lastSim);
     updateStats();
     requestAnimationFrame(tick);
     return;
