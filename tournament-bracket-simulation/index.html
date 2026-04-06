@@ -39,6 +39,26 @@
             cursor: pointer;
             font-size: 0.95em;
         }
+        #controls button {
+            background: #0f3460;
+            color: #eee;
+            border: 1px solid #e94560;
+            border-radius: 4px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        #controls button:hover {
+            background: #e94560;
+        }
+        #controls select {
+            background: #0f3460;
+            color: #eee;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.95em;
+        }
         canvas {
             border: 1px solid #16213e;
             border-radius: 8px;
@@ -75,8 +95,19 @@
         <div class="legend-item"><span class="legend-dot" style="background:#ff7043"></span> Miguel</div>
     </div>
     <div id="controls">
+        <button id="play-pause-btn"></button>
         <label><input type="checkbox" id="animate-toggle" checked> Show animation</label>
         <label>Speed: <input type="range" id="speed-slider" min="1" max="100" value="20"></label>
+        <label>Players:
+            <select id="player-count">
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64" selected>64</option>
+            </select>
+        </label>
     </div>
     <canvas id="bracket-canvas" width="1100" height="520"></canvas>
     <script src="bundle.js"></script>

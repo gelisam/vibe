@@ -1,6 +1,6 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
-const NUM_PLAYERS = 64;
-const NUM_ROUNDS = Math.log2(NUM_PLAYERS); // 6
+let numPlayers = 64;
+let numRounds = Math.log2(numPlayers); // 6
 
 interface SimResult {
   /** positions[round][matchIndex] = winner slot index (0-63 for round 0, etc.) */
@@ -19,11 +19,11 @@ interface SimResult {
 
 function simulate(): SimResult {
   // Place Alex and Miguel randomly
-  const slots = Array.from({ length: NUM_PLAYERS }, (_, i) => i);
-  const alexSlot = slots[Math.floor(Math.random() * NUM_PLAYERS)];
+  const slots = Array.from({ length: numPlayers }, (_, i) => i);
+  const alexSlot = slots[Math.floor(Math.random() * numPlayers)];
   let miguelSlot: number;
   do {
-    miguelSlot = slots[Math.floor(Math.random() * NUM_PLAYERS)];
+    miguelSlot = slots[Math.floor(Math.random() * numPlayers)];
   } while (miguelSlot === alexSlot);
 
   // bracket[round] = array of winner indices within that round
@@ -38,7 +38,7 @@ function simulate(): SimResult {
   const alexPath: number[] = [alexSlot];
   const miguelPath: number[] = [miguelSlot];
 
-  for (let round = 0; round < NUM_ROUNDS; round++) {
+  for (let round = 0; round < numRounds; round++) {
     const winners: number[] = [];
     const numMatches = currentPlayers.length / 2;
     let alexNext = -1;
@@ -100,7 +100,10 @@ const SLOT_COLOR = '#455a64';
 // Layout constants
 const LEFT_MARGIN = 30;
 const TOP_MARGIN = 20;
-const ROUND_WIDTH = (canvas.width - LEFT_MARGIN * 2) / NUM_ROUNDS;
+
+function getRoundWidth(): number {
+  return (canvas.width - LEFT_MARGIN * 2) / numRounds;
+}
 
 function slotY(slotIndex: number, totalSlots: number): number {
   const availableHeight = canvas.height - TOP_MARGIN * 2;
@@ -109,7 +112,7 @@ function slotY(slotIndex: number, totalSlots: number): number {
 }
 
 function roundX(round: number): number {
-  return LEFT_MARGIN + round * ROUND_WIDTH;
+  return LEFT_MARGIN + round * getRoundWidth();
 }
 
 /** Draw a simple stick figure */
@@ -173,8 +176,8 @@ function drawBracketLines() {
   ctx.strokeStyle = LINE_COLOR;
   ctx.lineWidth = 0.5;
 
-  for (let round = 0; round < NUM_ROUNDS; round++) {
-    const slotsInRound = NUM_PLAYERS / Math.pow(2, round);
+  for (let round = 0; round < numRounds; round++) {
+    const slotsInRound = numPlayers / Math.pow(2, round);
     const slotsNext = slotsInRound / 2;
     const x1 = roundX(round);
     const x2 = roundX(round + 1);
@@ -203,8 +206,8 @@ function drawBracketLines() {
 }
 
 function drawSlotDots() {
-  for (let round = 0; round <= NUM_ROUNDS; round++) {
-    const slotsInRound = NUM_PLAYERS / Math.pow(2, round);
+  for (let round = 0; round <= numRounds; round++) {
+    const slotsInRound = numPlayers / Math.pow(2, round);
     for (let i = 0; i < slotsInRound; i++) {
       const x = roundX(round);
       const y = slotY(i, slotsInRound);
@@ -223,7 +226,7 @@ function slotInRound(originalSlot: number, round: number): number {
 
 interface AnimState {
   sim: SimResult;
-  /** Current round being animated (0-based), or NUM_ROUNDS when done */
+  /** Current round being animated (0-based), or numRounds when done */
   currentRound: number;
   /** Progress within current round animation [0, 1] */
   progress: number;
@@ -239,8 +242,8 @@ function drawAnimatedBracket(state: AnimState) {
   const figSize = 8;
 
   // Draw Alex and Miguel at each completed round
-  for (let r = 0; r <= Math.min(state.currentRound, NUM_ROUNDS); r++) {
-    const slotsInThisRound = NUM_PLAYERS / Math.pow(2, r);
+  for (let r = 0; r <= Math.min(state.currentRound, numRounds); r++) {
+    const slotsInThisRound = numPlayers / Math.pow(2, r);
     const alexHere = sim.alexPath[r];
     const miguelHere = sim.miguelPath[r];
 
@@ -252,7 +255,7 @@ function drawAnimatedBracket(state: AnimState) {
     // For current round being animated, interpolate position
     if (isCurrentRound && r > 0) {
       // Draw the moving figures from previous round to this round
-      const prevSlots = NUM_PLAYERS / Math.pow(2, r - 1);
+      const prevSlots = numPlayers / Math.pow(2, r - 1);
       const t = state.progress;
 
       // Alex
@@ -309,7 +312,7 @@ function drawAnimatedBracket(state: AnimState) {
   // If they met, highlight the meeting round
   if (sim.metInRound >= 0 && state.currentRound >= sim.metInRound && state.done) {
     const meetRound = sim.metInRound;
-    const slotsInMeetRound = NUM_PLAYERS / Math.pow(2, meetRound);
+    const slotsInMeetRound = numPlayers / Math.pow(2, meetRound);
     const alexIdx = slotInRound(sim.alexSlot, meetRound);
     const miguelIdx = slotInRound(sim.miguelSlot, meetRound);
     const x = roundX(meetRound);
@@ -329,11 +332,11 @@ function drawAnimatedBracket(state: AnimState) {
   }
 
   // Draw eliminated markers for completed rounds
-  for (let r = 1; r <= Math.min(state.currentRound, NUM_ROUNDS); r++) {
+  for (let r = 1; r <= Math.min(state.currentRound, numRounds); r++) {
     const isCurrentAnimating = r === state.currentRound && !state.done;
     if (isCurrentAnimating) continue;
 
-    const prevSlots = NUM_PLAYERS / Math.pow(2, r - 1);
+    const prevSlots = numPlayers / Math.pow(2, r - 1);
     if (sim.alexPath[r] === -1 && sim.alexPath[r - 1] !== -1) {
       const prevIdx = sim.alexPath[r - 1];
       const prevX = roundX(r - 1);
@@ -359,8 +362,8 @@ function drawStaticBracket(sim: SimResult) {
   const figSize = 8;
 
   // Draw final positions
-  for (let r = 0; r <= NUM_ROUNDS; r++) {
-    const slotsInThisRound = NUM_PLAYERS / Math.pow(2, r);
+  for (let r = 0; r <= numRounds; r++) {
+    const slotsInThisRound = numPlayers / Math.pow(2, r);
     if (sim.alexPath[r] !== -1) {
       const x = roundX(r);
       const y = slotY(slotInRound(sim.alexPath[r], r), slotsInThisRound);
@@ -374,8 +377,8 @@ function drawStaticBracket(sim: SimResult) {
   }
 
   // Draw eliminated markers
-  for (let r = 1; r <= NUM_ROUNDS; r++) {
-    const prevSlots = NUM_PLAYERS / Math.pow(2, r - 1);
+  for (let r = 1; r <= numRounds; r++) {
+    const prevSlots = numPlayers / Math.pow(2, r - 1);
     if (sim.alexPath[r] === -1 && sim.alexPath[r - 1] !== -1) {
       const prevIdx = sim.alexPath[r - 1];
       const x = roundX(r - 1);
@@ -395,7 +398,7 @@ function drawStaticBracket(sim: SimResult) {
   // Highlight meeting point
   if (sim.metInRound >= 0) {
     const meetRound = sim.metInRound;
-    const slotsInMeetRound = NUM_PLAYERS / Math.pow(2, meetRound);
+    const slotsInMeetRound = numPlayers / Math.pow(2, meetRound);
     const alexIdx = slotInRound(sim.alexSlot, meetRound);
     const miguelIdx = slotInRound(sim.miguelSlot, meetRound);
     const x = roundX(meetRound);
@@ -421,12 +424,15 @@ const totalSimsEl = document.getElementById('total-sims')!;
 const meetPctEl = document.getElementById('meet-pct')!;
 const animToggle = document.getElementById('animate-toggle') as HTMLInputElement;
 const speedSlider = document.getElementById('speed-slider') as HTMLInputElement;
+const playPauseBtn = document.getElementById('play-pause-btn') as HTMLButtonElement;
+const playerCountSelect = document.getElementById('player-count') as HTMLSelectElement;
 
 let totalSims = 0;
 let totalMet = 0;
-let animating = true;
+let paused = false;
 let animState: AnimState | null = null;
 let lastFrameTime = 0;
+let pendingTimeout: number | null = null;
 
 function updateStats() {
   totalSimsEl.textContent = totalSims.toLocaleString();
@@ -440,25 +446,23 @@ function shouldAnimate(): boolean {
 
 /** Determine the last round we need to animate to (stop once both eliminated or they met) */
 function lastRelevantRound(sim: SimResult): number {
-  for (let r = 1; r <= NUM_ROUNDS; r++) {
+  for (let r = 1; r <= numRounds; r++) {
     const alexGone = sim.alexPath[r] === -1;
     const miguelGone = sim.miguelPath[r] === -1;
     if (alexGone && miguelGone) return r;
     if (sim.metInRound >= 0 && r >= sim.metInRound + 1) return r;
   }
-  return NUM_ROUNDS;
+  return numRounds;
+}
+
+function drawEmptyBracket() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBracketLines();
+  drawSlotDots();
 }
 
 function startNewSimulation() {
   const sim = simulate();
-
-  if (!shouldAnimate()) {
-    // No animation — just count
-    totalSims++;
-    if (sim.metInRound >= 0) totalMet++;
-    drawStaticBracket(sim);
-    return true; // done immediately
-  }
 
   // Start animation
   animState = {
@@ -471,6 +475,8 @@ function startNewSimulation() {
 }
 
 function tick(timestamp: number) {
+  if (paused) return;
+
   if (!lastFrameTime) lastFrameTime = timestamp;
   const dt = (timestamp - lastFrameTime) / 1000;
   lastFrameTime = timestamp;
@@ -514,9 +520,10 @@ function tick(timestamp: number) {
       updateStats();
 
       // Pause briefly on the final state
-      setTimeout(() => {
+      pendingTimeout = window.setTimeout(() => {
+        pendingTimeout = null;
         animState = null;
-        requestAnimationFrame(tick);
+        if (!paused) requestAnimationFrame(tick);
       }, Math.max(200, 1000 / speed));
       drawAnimatedBracket(animState);
       return;
@@ -528,9 +535,54 @@ function tick(timestamp: number) {
   requestAnimationFrame(tick);
 }
 
-// Initial draw
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-drawBracketLines();
-drawSlotDots();
+// ─── Play/Pause ───────────────────────────────────────────────────────────────
+
+function updatePlayPauseButton() {
+  playPauseBtn.textContent = paused ? '\u25b6 Play' : '\u23f8 Pause';
+}
+
+playPauseBtn.addEventListener('click', () => {
+  paused = !paused;
+  updatePlayPauseButton();
+  if (!paused) {
+    lastFrameTime = 0;
+    requestAnimationFrame(tick);
+  }
+});
+
+// ─── Player Count ─────────────────────────────────────────────────────────────
+
+playerCountSelect.addEventListener('change', () => {
+  numPlayers = parseInt(playerCountSelect.value, 10);
+  numRounds = Math.log2(numPlayers);
+
+  // Reset stats
+  totalSims = 0;
+  totalMet = 0;
+  updateStats();
+
+  // Cancel any pending timeout
+  if (pendingTimeout !== null) {
+    clearTimeout(pendingTimeout);
+    pendingTimeout = null;
+  }
+
+  // Reset animation state
+  animState = null;
+  lastFrameTime = 0;
+
+  // Redraw empty bracket
+  drawEmptyBracket();
+
+  // Restart loop if not paused
+  if (!paused) {
+    requestAnimationFrame(tick);
+  }
+});
+
+// ─── Initial Setup ────────────────────────────────────────────────────────────
+
+updatePlayPauseButton();
+drawEmptyBracket();
 
 requestAnimationFrame(tick);
