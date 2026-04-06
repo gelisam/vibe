@@ -29,7 +29,6 @@ function simulate(): SimResult {
   // bracket[round] = array of winner indices within that round
   // round 0: 64 players → 32 winners, round 1: 32→16, ... round 5: 2→1
   const bracket: number[][] = [];
-  bracket[-1] = slots; // "round -1" is the initial lineup, unused but conceptual
 
   let currentPlayers = slots.slice(); // all 64
   let alexCurrent = alexSlot;
@@ -362,15 +361,15 @@ function drawStaticBracket(sim: SimResult) {
 
   // Draw final positions
   for (let r = 0; r <= NUM_ROUNDS; r++) {
-    const slotsInRound_ = NUM_PLAYERS / Math.pow(2, r);
+    const slotsInThisRound = NUM_PLAYERS / Math.pow(2, r);
     if (sim.alexPath[r] !== -1) {
       const x = roundX(r);
-      const y = slotY(slotInRound(sim.alexPath[r], r), slotsInRound_);
+      const y = slotY(slotInRound(sim.alexPath[r], r), slotsInThisRound);
       drawStickFigure(x, y, ALEX_COLOR, figSize, false);
     }
     if (sim.miguelPath[r] !== -1) {
       const x = roundX(r);
-      const y = slotY(slotInRound(sim.miguelPath[r], r), slotsInRound_);
+      const y = slotY(slotInRound(sim.miguelPath[r], r), slotsInThisRound);
       drawStickFigure(x, y, MIGUEL_COLOR, figSize, false);
     }
   }
