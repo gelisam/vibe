@@ -192,15 +192,19 @@ function render(): void {
     updateCounts();
 }
 
+function distanceToItem(x: number, y: number, item: Item): number {
+    const dx = x - item.x;
+    const dy = y - item.y;
+    return Math.hypot(dx, dy);
+}
+
 function hitTest(x: number, y: number): Item | null {
     for (let i = items.length - 1; i >= 0; i -= 1) {
         const item = items[i];
         if (item.kind !== 'point') {
             continue;
         }
-        const dx = x - item.x;
-        const dy = y - item.y;
-        const distance = Math.hypot(dx, dy);
+        const distance = distanceToItem(x, y, item);
         if (distance <= POINT_HIT_RADIUS_UNITS) {
             return item;
         }
@@ -211,9 +215,7 @@ function hitTest(x: number, y: number): Item | null {
         if (item.kind !== 'circle') {
             continue;
         }
-        const dx = x - item.x;
-        const dy = y - item.y;
-        const distance = Math.hypot(dx, dy);
+        const distance = distanceToItem(x, y, item);
         if (distance <= UNIT_RADIUS) {
             return item;
         }
