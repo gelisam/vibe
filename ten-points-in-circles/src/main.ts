@@ -366,15 +366,11 @@ canvas.addEventListener('pointerup', () => {
         const height = Math.abs(marquee.currentY - marquee.startY);
         if (width > MIN_MARQUEE_SELECTION_SIZE_UNITS || height > MIN_MARQUEE_SELECTION_SIZE_UNITS) {
             const ids = selectedInMarquee(marquee);
-            if (marquee.additive) {
-                for (const id of ids) {
-                    selectedIds.add(id);
-                }
-            } else {
+            if (!marquee.additive) {
                 selectedIds.clear();
-                for (const id of ids) {
-                    selectedIds.add(id);
-                }
+            }
+            for (const id of ids) {
+                selectedIds.add(id);
             }
         }
         marquee = null;
