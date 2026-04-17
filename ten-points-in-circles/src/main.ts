@@ -195,13 +195,26 @@ function render(): void {
 function hitTest(x: number, y: number): Item | null {
     for (let i = items.length - 1; i >= 0; i -= 1) {
         const item = items[i];
+        if (item.kind !== 'point') {
+            continue;
+        }
         const dx = x - item.x;
         const dy = y - item.y;
         const distance = Math.hypot(dx, dy);
-        if (item.kind === 'circle' && distance <= UNIT_RADIUS) {
+        if (distance <= POINT_HIT_RADIUS_UNITS) {
             return item;
         }
-        if (item.kind === 'point' && distance <= POINT_HIT_RADIUS_UNITS) {
+    }
+
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+        const item = items[i];
+        if (item.kind !== 'circle') {
+            continue;
+        }
+        const dx = x - item.x;
+        const dy = y - item.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= UNIT_RADIUS) {
             return item;
         }
     }
