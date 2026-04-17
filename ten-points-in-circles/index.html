@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ten Points in Circles</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: min(96vw, 900px);
+            padding: 18px;
+            box-sizing: border-box;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button.active {
+            background: #dbeafe;
+            border-color: #60a5fa;
+        }
+
+        #stage {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+
+        .note {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>Ten Points in Circles</h1>
+        <div class="toolbar">
+            <button id="mode-select" data-mode="select" class="active">Select / Move</button>
+            <button id="mode-add-point" data-mode="add-point">Add Point</button>
+            <button id="mode-add-circle" data-mode="add-circle">Add Unit Circle</button>
+            <button id="mode-remove" data-mode="remove">Remove</button>
+            <button id="clear-selection">Clear Selection</button>
+            <span><strong>Total points:</strong> <span id="point-count">0</span></span>
+        </div>
+        <canvas id="stage" width="672" height="672" tabindex="0" aria-label="Interactive canvas"></canvas>
+        <div class="note">
+            Scale: 1 unit = 28 pixels. The 24×24 unit area leaves enough room for 10 unit circles (diameter 2) in each direction.
+            Use Shift+Click or drag a selection box to multi-select. Arrow keys move selected items by 1px.
+        </div>
+    </div>
+    <script src="bundle.js"></script>
+</body>
+</html>
