@@ -27,6 +27,7 @@ const WORLD_SIZE = 24;
 const SCALE = 28;
 const POINT_DRAW_RADIUS_UNITS = 5 / SCALE;
 const POINT_HIT_RADIUS_UNITS = 8 / SCALE;
+const MIN_MARQUEE_SELECTION_SIZE_UNITS = 0.05;
 
 const canvasEl = document.getElementById('stage') as HTMLCanvasElement | null;
 const pointCountNode = document.getElementById('point-count');
@@ -363,7 +364,7 @@ canvas.addEventListener('pointerup', () => {
     if (marquee) {
         const width = Math.abs(marquee.currentX - marquee.startX);
         const height = Math.abs(marquee.currentY - marquee.startY);
-        if (width > 0.05 || height > 0.05) {
+        if (width > MIN_MARQUEE_SELECTION_SIZE_UNITS || height > MIN_MARQUEE_SELECTION_SIZE_UNITS) {
             const ids = selectedInMarquee(marquee);
             if (marquee.additive) {
                 for (const id of ids) {
