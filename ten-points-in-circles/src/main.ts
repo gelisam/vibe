@@ -28,19 +28,24 @@ const SCALE = 28;
 const POINT_DRAW_RADIUS_UNITS = 5 / SCALE;
 const POINT_HIT_RADIUS_UNITS = 8 / SCALE;
 
-const canvas = document.getElementById('stage') as HTMLCanvasElement | null;
-const pointCountEl = document.getElementById('point-count');
-const clearSelectionButton = document.getElementById('clear-selection');
+const canvasEl = document.getElementById('stage') as HTMLCanvasElement | null;
+const pointCountNode = document.getElementById('point-count');
+const clearSelectionNode = document.getElementById('clear-selection');
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-mode]'));
 
-if (!canvas || !pointCountEl || !clearSelectionButton) {
+if (!canvasEl || !pointCountNode || !clearSelectionNode) {
     throw new Error('Missing required DOM elements.');
 }
 
-const ctx = canvas.getContext('2d');
-if (!ctx) {
+const canvas: HTMLCanvasElement = canvasEl;
+const pointCountEl: HTMLElement = pointCountNode;
+const clearSelectionButton: HTMLElement = clearSelectionNode;
+
+const ctxMaybe = canvas.getContext('2d');
+if (!ctxMaybe) {
     throw new Error('Failed to get 2D context.');
 }
+const ctx: CanvasRenderingContext2D = ctxMaybe;
 
 let items: Item[] = [];
 let nextId = 1;
