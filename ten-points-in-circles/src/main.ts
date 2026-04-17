@@ -20,10 +20,7 @@ const CIRCLE_STROKE_PX = 2;
 const HIT_PADDING_WORLD = 0.25;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d');
-if (!ctx) {
-    throw new Error('Could not get 2D context');
-}
+const ctx = canvas.getContext('2d')!;
 
 const modeSelectBtn = document.getElementById('mode-select') as HTMLButtonElement;
 const modePointBtn = document.getElementById('mode-point') as HTMLButtonElement;
