@@ -199,28 +199,20 @@ function distanceToItem(x: number, y: number, item: Item): number {
 }
 
 function hitTest(x: number, y: number): Item | null {
-    for (let i = items.length - 1; i >= 0; i -= 1) {
-        const item = items[i];
-        if (item.kind !== 'point') {
-            continue;
-        }
-        const distance = distanceToItem(x, y, item);
-        if (distance <= POINT_HIT_RADIUS_UNITS) {
-            return item;
-        }
-    }
+    let firstCircleHit: Item | null = null;
 
     for (let i = items.length - 1; i >= 0; i -= 1) {
         const item = items[i];
-        if (item.kind !== 'circle') {
-            continue;
-        }
         const distance = distanceToItem(x, y, item);
-        if (distance <= UNIT_RADIUS) {
+        if (item.kind === 'point' && distance <= POINT_HIT_RADIUS_UNITS) {
             return item;
         }
+        if (item.kind === 'circle' && distance <= UNIT_RADIUS && firstCircleHit === null) {
+            firstCircleHit = item;
+        }
     }
-    return null;
+
+    return firstCircleHit;
 }
 
 function addItem(kind: ItemKind, x: number, y: number): void {
