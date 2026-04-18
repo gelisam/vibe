@@ -1,11 +1,12 @@
-name: Deploy PR
+name: Deploy Merged PR
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [closed]
 
 jobs:
   detect:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -48,7 +49,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -65,7 +66,6 @@ jobs:
     - name: Build and deploy changed projects
       id: build_deploy
       run: |
-        PR_NUMBER="${{ github.event.pull_request.number }}"
         DEPLOYED_PROJECTS=""
         for PROJECT in ${{ needs.detect.outputs.projects }}; do
           if [ -f "$PROJECT/package.json" ]; then
@@ -75,7 +75,7 @@ jobs:
             npm run build
 
             echo "Deploying $PROJECT..."
-            DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip-$PR_NUMBER"
+            DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT"
             ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $DEPLOY_DIR"
             if [ -n "$(ls -A dist 2>/dev/null)" ]; then
               scp -r dist/* ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:"$DEPLOY_DIR/"
@@ -87,18 +87,17 @@ jobs:
         done
         echo "deployed_projects=${DEPLOYED_PROJECTS# }" >> $GITHUB_OUTPUT
 
-    - name: Comment PR with deploy URLs
+    - name: Comment PR with production URLs
       if: steps.build_deploy.outputs.deployed_projects != ''
       uses: actions/github-script@v7
       with:
         script: |
-          const prNumber = '${{ github.event.pull_request.number }}';
           const deployedProjects = '${{ steps.build_deploy.outputs.deployed_projects }}'.trim().split(/\s+/).filter(Boolean);
-          const urls = deployedProjects.map(p => `- 📱 **${p}**: ${{ secrets.BASE_URL }}/${p}-wip-${prNumber}`).join('\n');
+          const urls = deployedProjects.map(p => `- 🚀 **${p}**: ${{ secrets.BASE_URL }}/${p}`).join('\n');
 
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `🚀 **PR deployed successfully!**\n\n${urls}\n\nThis deployment will be updated automatically when you push new commits to this PR.`
+            body: `✅ **Merged PR deployed to production**\n\n${urls}`
           });
