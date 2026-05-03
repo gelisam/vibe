@@ -252,7 +252,8 @@ function showTypingPhase(target: string): void {
     const cursorPos = typed.length;
 
     // When the cursor moves into a different word, reset the mistake counter.
-    const wsNow = cursorPos < target.length ? wordStartAt(cursorPos) : -1;
+    // Use target.length as the sentinel when the cursor is at or past the end.
+    const wsNow = cursorPos < target.length ? wordStartAt(cursorPos) : target.length;
     if (wsNow !== prevWordStart) {
       mistakeCount  = 0;
       prevWordStart = wsNow;
