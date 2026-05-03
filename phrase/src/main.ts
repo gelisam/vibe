@@ -203,6 +203,8 @@ function buildOnScreenKeyboard(inputEl: HTMLInputElement): HTMLDivElement {
             kbMode = 'lower';
             render();
           } else if (key === 'BACK') {
+            // Always delete the last character. This game model expects
+            // sequential typing, so the effective cursor is always at the end.
             if (inputEl.value.length > 0) {
               inputEl.value = inputEl.value.slice(0, -1);
               inputEl.dispatchEvent(new Event('input', { bubbles: true }));
@@ -270,7 +272,7 @@ function showTypingPhase(target: string): void {
   `;
 
   document.body.innerHTML = '';
-  document.body.style.paddingBottom = '220px';
+  document.body.style.paddingBottom = '220px'; // reserve space for the ~200px on-screen keyboard
   document.body.appendChild(container);
 
   const charsEl    = document.getElementById('target-chars')!;
