@@ -134,6 +134,107 @@ function countCompletedWords(target: string, typed: string): number {
   return count;
 }
 
+// ===== On-Screen Keyboard =====
+
+function buildOnScreenKeyboard(inputEl: HTMLInputElement): HTMLDivElement {
+  type KbMode = 'lower' | 'upper' | 'accents';
+  let kbMode: KbMode = 'lower';
+
+  const LAYOUTS: Record<KbMode, string[][]> = {
+    lower: [
+      ['a','z','e','r','t','y','u','i','o','p'],
+      ['q','s','d','f','g','h','j','k','l','m'],
+      ['SHIFT','w','x','c','v','b','n','BACK'],
+      ['ACCENTS','SPACE'],
+    ],
+    upper: [
+      ['A','Z','E','R','T','Y','U','I','O','P'],
+      ['Q','S','D','F','G','H','J','K','L','M'],
+      ['SHIFT','W','X','C','V','B','N','BACK'],
+      ['ACCENTS','SPACE'],
+    ],
+    accents: [
+      ['à','â','ä','é','è','ê','ë','î','ï','ô'],
+      ['ù','û','ü','ç','œ','æ','À','É','È','Ç'],
+      ['!','?','.',',','\'','«','»','-','BACK'],
+      ['ABC','SPACE'],
+    ],
+  };
+
+  const KEY_LABEL: Partial<Record<string, string>> = {
+    SHIFT:   '⇧',
+    BACK:    '⌫',
+    ACCENTS: '&123',
+    ABC:     'abc',
+    SPACE:   'espace',
+  };
+
+  const kbEl = document.createElement('div');
+  kbEl.className = 'onscreen-kb';
+
+  function render(): void {
+    kbEl.innerHTML = '';
+    for (const row of LAYOUTS[kbMode]) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      for (const key of row) {
+        const btn = document.createElement('button');
+        btn.type        = 'button';
+        btn.textContent = KEY_LABEL[key] ?? key;
+
+        let cls = 'kb-key';
+        if (['SHIFT','BACK','ACCENTS','ABC'].includes(key)) cls += ' kb-key-modifier';
+        if (key === 'SPACE')                                cls += ' kb-key-space';
+        if (key === 'SHIFT' && kbMode === 'upper')         cls += ' kb-key-active';
+        btn.className = cls;
+
+        // Prevent the button tap from stealing focus from the input.
+        btn.addEventListener('pointerdown', (e) => e.preventDefault());
+
+        btn.addEventListener('click', () => {
+          inputEl.focus();
+          if (key === 'SHIFT') {
+            kbMode = kbMode === 'upper' ? 'lower' : 'upper';
+            render();
+          } else if (key === 'ACCENTS') {
+            kbMode = 'accents';
+            render();
+          } else if (key === 'ABC') {
+            kbMode = 'lower';
+            render();
+          } else if (key === 'BACK') {
+            if (inputEl.value.length > 0) {
+              inputEl.value = inputEl.value.slice(0, -1);
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } else if (key === 'SPACE') {
+            if (inputEl.value.length < inputEl.maxLength) {
+              inputEl.value += ' ';
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          } else {
+            if (inputEl.value.length < inputEl.maxLength) {
+              inputEl.value += key;
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            // One-shot shift: revert to lowercase after each capital letter.
+            if (kbMode === 'upper') {
+              kbMode = 'lower';
+              render();
+            }
+          }
+        });
+
+        rowEl.appendChild(btn);
+      }
+      kbEl.appendChild(rowEl);
+    }
+  }
+
+  render();
+  return kbEl;
+}
+
 // ===== Phase 2: Child types the sentence =====
 
 function showTypingPhase(target: string): void {
@@ -161,7 +262,7 @@ function showTypingPhase(target: string): void {
       autocorrect="off"
       autocapitalize="none"
       spellcheck="false"
-      inputmode="text"
+      inputmode="none"
       placeholder="Tape ici…"
     />
     <p id="success-msg" class="success-msg hidden">🎉 Bravo ! Tu as tout bien écrit !</p>
@@ -169,12 +270,16 @@ function showTypingPhase(target: string): void {
   `;
 
   document.body.innerHTML = '';
+  document.body.style.paddingBottom = '220px';
   document.body.appendChild(container);
 
   const charsEl    = document.getElementById('target-chars')!;
   const inputEl    = document.getElementById('typing-input') as HTMLInputElement;
   const successMsg = document.getElementById('success-msg')!;
   const retryBtn   = document.getElementById('retry-btn')!;
+
+  const kbEl = buildOnScreenKeyboard(inputEl);
+  document.body.appendChild(kbEl);
 
   inputEl.maxLength = target.length;
 
@@ -277,6 +382,8 @@ function showTypingPhase(target: string): void {
       inputEl.disabled = true;
       successMsg.classList.remove('hidden');
       retryBtn.classList.remove('hidden');
+      kbEl.remove();
+      document.body.style.paddingBottom = '';
       spawnConfetti(280);
       return;
     }
@@ -318,6 +425,7 @@ function showSetupPhase(): void {
   `;
 
   document.body.innerHTML = '';
+  document.body.style.paddingBottom = '';
   document.body.appendChild(container);
 
   const btn      = document.getElementById('start-btn') as HTMLButtonElement;

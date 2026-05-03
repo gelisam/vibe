@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES6",
-    "lib": ["ES6", "DOM"],
+    "lib": ["ES2016", "DOM"],
     "removeComments": true,
     "preserveConstEnums": true,
     "sourceMap": true,

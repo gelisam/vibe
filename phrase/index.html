@@ -219,6 +219,68 @@
         .hidden {
             display: none;
         }
+
+        /* ── On-screen keyboard ── */
+        .onscreen-kb {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #cdd0d6;
+            padding: 6px 3px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 100;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .kb-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .kb-key {
+            flex: 1;
+            max-width: 38px;
+            height: 44px;
+            background: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 1px 0 #888;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            color: #111;
+            user-select: none;
+            padding: 0;
+        }
+
+        .kb-key-modifier {
+            background: #a8adb8;
+            font-size: 0.8rem;
+            max-width: 52px;
+            flex: 1.4;
+        }
+
+        .kb-key-active {
+            background: #3498db;
+            color: white;
+        }
+
+        .kb-key-space {
+            flex: 4;
+            max-width: none;
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .kb-key:active {
+            background: #b0c0d0;
+        }
     </style>
 </head>
 <body>
