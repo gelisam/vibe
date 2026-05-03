@@ -142,15 +142,15 @@ function buildOnScreenKeyboard(inputEl: HTMLInputElement): HTMLDivElement {
 
   const LAYOUTS: Record<KbMode, string[][]> = {
     lower: [
-      ['a','z','e','r','t','y','u','i','o','p'],
-      ['q','s','d','f','g','h','j','k','l','m'],
-      ['SHIFT','w','x','c','v','b','n','BACK'],
+      ['q','w','e','r','t','y','u','i','o','p'],
+      ['a','s','d','f','g','h','j','k','l'],
+      ['SHIFT','z','x','c','v','b','n','m','BACK'],
       ['ACCENTS','SPACE'],
     ],
     upper: [
-      ['A','Z','E','R','T','Y','U','I','O','P'],
-      ['Q','S','D','F','G','H','J','K','L','M'],
-      ['SHIFT','W','X','C','V','B','N','BACK'],
+      ['Q','W','E','R','T','Y','U','I','O','P'],
+      ['A','S','D','F','G','H','J','K','L'],
+      ['SHIFT','Z','X','C','V','B','N','M','BACK'],
       ['ACCENTS','SPACE'],
     ],
     accents: [
