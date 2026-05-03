@@ -178,8 +178,43 @@ function showTypingPhase(target: string): void {
 
   inputEl.maxLength = target.length;
 
+  // Returns the start index (inclusive) of the word that contains position pos.
+  function wordStartAt(pos: number): number {
+    let s = pos;
+    while (s > 0 && target[s - 1] !== ' ') s--;
+    return s;
+  }
+
+  // Returns the end index (exclusive) of the word that contains position pos.
+  function wordEndAt(pos: number): number {
+    let e = pos;
+    while (e < target.length && target[e] !== ' ') e++;
+    return e;
+  }
+
+  let celebratedWordCount = 0;
+  let celebratedFull      = false;
+  // Per-word mistake tracking (declared before renderChars is first called).
+  let mistakeCount    = 0;
+  let prevWordStart   = 0;  // will be set after wordStartAt is defined
+  let prevTypedLength = 0;
+
   function renderChars(typed: string): void {
     charsEl.innerHTML = '';
+    const cursorPos = typed.length;
+
+    // Determine hint range: reveal current word in grey only after 10 mistakes.
+    let hintStart = -1;
+    let hintEnd   = -1;
+    if (
+      mistakeCount >= 10 &&
+      cursorPos < target.length &&
+      target[cursorPos] !== ' '
+    ) {
+      hintStart = wordStartAt(cursorPos);
+      hintEnd   = wordEndAt(cursorPos);
+    }
+
     for (let i = 0; i < target.length; i++) {
       const span = document.createElement('span');
       const ch   = target[i];
@@ -188,8 +223,21 @@ function showTypingPhase(target: string): void {
 
       if (i < typed.length) {
         span.classList.add(typed[i] === ch ? 'correct' : 'incorrect');
+      } else if (i === cursorPos) {
+        // Always show the cursor indicator; reveal char text only when hinting.
+        span.classList.add('cursor');
+        if (i >= hintStart && i < hintEnd) {
+          span.classList.add('pending');
+        } else {
+          span.classList.add('char-hidden');
+        }
       } else {
-        span.classList.add(i === typed.length ? 'cursor' : 'pending');
+        // Pending: show grey for current-word hint, transparent otherwise.
+        if (i >= hintStart && i < hintEnd) {
+          span.classList.add('pending');
+        } else {
+          span.classList.add('char-hidden');
+        }
       }
       charsEl.appendChild(span);
     }
@@ -197,12 +245,29 @@ function showTypingPhase(target: string): void {
 
   renderChars('');
   inputEl.focus();
-
-  let celebratedWordCount = 0;
-  let celebratedFull      = false;
+  prevWordStart = wordStartAt(0);
 
   inputEl.addEventListener('input', () => {
-    const typed = inputEl.value;
+    const typed     = inputEl.value;
+    const cursorPos = typed.length;
+
+    // When the cursor moves into a different word, reset the mistake counter.
+    const wsNow = cursorPos < target.length ? wordStartAt(cursorPos) : -1;
+    if (wsNow !== prevWordStart) {
+      mistakeCount  = 0;
+      prevWordStart = wsNow;
+    }
+
+    // Count newly added wrong keystrokes.
+    if (typed.length > prevTypedLength) {
+      for (let i = prevTypedLength; i < typed.length; i++) {
+        if (i < target.length && typed[i] !== target[i]) {
+          mistakeCount++;
+        }
+      }
+    }
+    prevTypedLength = typed.length;
+
     renderChars(typed);
 
     // Full sentence correct
