@@ -137,8 +137,11 @@ function countCompletedWords(target: string, typed: string): number {
 // ===== Phase 2: Child types the sentence =====
 
 function showTypingPhase(target: string): void {
-  confettiCanvas = null;
-  confettiCtx    = null;
+  if (confettiCanvas) {
+    confettiCanvas.remove();
+    confettiCanvas = null;
+  }
+  confettiCtx = null;
   confettiParticles = [];
   if (confettiAnimId !== null) {
     cancelAnimationFrame(confettiAnimId);
