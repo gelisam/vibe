@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rubik's Cube Tracker</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eeeeee;
+            touch-action: none;
+        }
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #333;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            user-select: none;
+        }
+        button:hover:not(:disabled) {
+            background-color: #555;
+            transform: translateY(-2px);
+        }
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        #header {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        #instructions {
+            position: absolute;
+            top: 60px;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>Rubik's Cube Tracker</h1>
+    </div>
+    <div id="instructions">
+        Drag on faces to rotate. Follow pink arrows in Reverse mode.
+    </div>
+    <div id="ui-container">
+        <button id="undo-btn">Undo</button>
+        <button id="reverse-btn">Reverse</button>
+        <button id="redo-btn">Redo</button>
+    </div>
+    <script src="bundle.js"></script>
+</body>
+</html>
