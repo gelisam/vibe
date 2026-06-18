@@ -1,0 +1,8 @@
+
+> rubiks-cube-tracker@1.0.0 serve
+> npx serve dist/
+
+(node:175907) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+UPDATE AVAILABLE The latest version of `serve` is 14.2.6
+INFO: Accepting connections at http://localhost:43821

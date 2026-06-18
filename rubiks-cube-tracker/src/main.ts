@@ -41,6 +41,7 @@ class RubiksCube {
     mouseDownPos = new THREE.Vector2();
     selectedCubie: THREE.Mesh | null = null;
     selectedFaceNormal: THREE.Vector3 | null = null;
+    intersectPoint = new THREE.Vector3();
 
     // History and State
     history: { move: Move, wasReversePress?: boolean, wasReverseMove?: boolean }[] = [];
@@ -49,8 +50,11 @@ class RubiksCube {
     movesToReverse: Move[] = [];
     reverseIndex = -1;
 
-    // Arrows
+    // Arrows & Debug & Off-cube
     arrowGroup: THREE.Group;
+    debugGroup: THREE.Group;
+    offCubeZones: THREE.Mesh[] = [];
+    debugMode = false;
 
     constructor() {
         this.scene = new THREE.Scene();
@@ -78,7 +82,11 @@ class RubiksCube {
         this.arrowGroup = new THREE.Group();
         this.scene.add(this.arrowGroup);
 
+        this.debugGroup = new THREE.Group();
+        this.scene.add(this.debugGroup);
+
         this.initCube();
+        this.initOffCubeZones();
         this.initUI();
         this.animate();
 
@@ -102,23 +110,30 @@ class RubiksCube {
             e.preventDefault();
         }, { passive: false });
         this.renderer.domElement.addEventListener('touchend', () => this.onMouseUp());
+
+        (window as any).rubiksCube = this;
     }
 
     initCube() {
         const size = 0.96;
         const geometry = new THREE.BoxGeometry(size, size, size);
 
-        // Orientation: White Top (+Y), Red Front-Left (+Z), Blue Front-Right (+X)
+        // Target: White Top, Blue Left, Red Right
+        // Adjusting mapping based on visual observation:
+        // +X is Right-Back-ish, +Z is Left-Back-ish? No.
+        // Let's just fix it by trial and error if needed, but standard +X Right, +Z Left is usually correct for this camera.
+        // Actually, with Camera(12,12,12), +Z and +X both point "towards" camera.
+        // +Z is on the Left, +X is on the Right.
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
                 for (let z = -1; z <= 1; z++) {
                     const materials = [
-                        new THREE.MeshBasicMaterial({ color: x === 1 ? COLORS.blue : COLORS.black }),   // +x (Front-Right)
-                        new THREE.MeshBasicMaterial({ color: x === -1 ? COLORS.green : COLORS.black }),  // -x (Back-Left)
-                        new THREE.MeshBasicMaterial({ color: y === 1 ? COLORS.white : COLORS.black }),   // +y (Top)
-                        new THREE.MeshBasicMaterial({ color: y === -1 ? COLORS.yellow : COLORS.black }), // -y (Bottom)
-                        new THREE.MeshBasicMaterial({ color: z === 1 ? COLORS.red : COLORS.black }),    // +z (Front-Left)
-                        new THREE.MeshBasicMaterial({ color: z === -1 ? COLORS.orange : COLORS.black })   // -z (Back-Right)
+                        new THREE.MeshBasicMaterial({ color: x === 1 ? COLORS.red : COLORS.black }),    // +x (Right: Red)
+                        new THREE.MeshBasicMaterial({ color: x === -1 ? COLORS.orange : COLORS.black }),  // -x (Back-Left: Orange)
+                        new THREE.MeshBasicMaterial({ color: y === 1 ? COLORS.white : COLORS.black }),   // +y (Top: White)
+                        new THREE.MeshBasicMaterial({ color: y === -1 ? COLORS.yellow : COLORS.black }), // -y (Bottom: Yellow)
+                        new THREE.MeshBasicMaterial({ color: z === 1 ? COLORS.blue : COLORS.black }),    // +z (Left: Blue)
+                        new THREE.MeshBasicMaterial({ color: z === -1 ? COLORS.green : COLORS.black })    // -z (Back-Right: Green)
                     ];
 
                     const cubie = new THREE.Mesh(geometry, materials);
@@ -135,10 +150,44 @@ class RubiksCube {
         }
     }
 
+    initOffCubeZones() {
+        const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.1, visible: false, side: THREE.DoubleSide });
+        const geom = new THREE.PlaneGeometry(8, 8);
+
+        // Yellow Zone (Bottom)
+        const yellow = new THREE.Mesh(geom, material.clone());
+        yellow.position.set(0, -4.5, 0);
+        yellow.rotation.x = Math.PI / 2;
+        yellow.name = 'zone-yellow';
+        this.scene.add(yellow);
+        this.offCubeZones.push(yellow);
+
+        // Orange Zone (Back-Left)
+        const orange = new THREE.Mesh(geom, material.clone());
+        orange.position.set(-4.5, 0, 0);
+        orange.rotation.y = Math.PI / 2;
+        orange.name = 'zone-orange';
+        this.scene.add(orange);
+        this.offCubeZones.push(orange);
+
+        // Green Zone (Back-Right)
+        const green = new THREE.Mesh(geom, material.clone());
+        green.position.set(0, 0, -4.5);
+        green.name = 'zone-green';
+        this.scene.add(green);
+        this.offCubeZones.push(green);
+    }
+
     initUI() {
         document.getElementById('undo-btn')?.addEventListener('click', () => this.undo());
         document.getElementById('redo-btn')?.addEventListener('click', () => this.redo());
         document.getElementById('reverse-btn')?.addEventListener('click', () => this.onReverseBtnClick());
+        document.getElementById('debug-btn')?.addEventListener('click', () => {
+            this.debugMode = !this.debugMode;
+            const btn = document.getElementById('debug-btn');
+            if (btn) btn.innerText = `Debug ${this.debugMode ? 'ON' : 'OFF'}`;
+            this.updateDebugVisuals();
+        });
         this.updateUI();
     }
 
@@ -166,6 +215,13 @@ class RubiksCube {
         }
 
         this.updateArrow();
+    }
+
+    updateDebugVisuals() {
+        for (const zone of this.offCubeZones) {
+            zone.visible = this.debugMode;
+            (zone.material as THREE.MeshBasicMaterial).opacity = 0.3;
+        }
     }
 
     updateArrow() {
@@ -197,30 +253,17 @@ class RubiksCube {
 
         if (move.axis === 'y') {
             arrow.position.set(1.5, move.layer, 1.5);
-            if (move.direction > 0) { // CW: +X -> +Z
-                arrow.rotation.x = Math.PI / 2;
-            } else { // CCW: +Z -> +X
-                arrow.rotation.z = -Math.PI / 2;
-            }
+            if (move.direction > 0) arrow.rotation.x = Math.PI / 2;
+            else arrow.rotation.z = -Math.PI / 2;
             if (move.layer === -1) arrow.position.y = -2.2;
         } else if (move.axis === 'x') {
-            // Blue (+X)
-            arrow.position.set(2.0, 1.2, 0);
-            if (move.layer === -1) arrow.position.x = -2.4; // Green Indicator
-            if (move.direction > 0) { // CW: +Y -> +Z
-                arrow.rotation.x = Math.PI / 2;
-            } else { // CCW: +Z -> +Y
-                arrow.rotation.x = 0;
-            }
+            arrow.position.set(1.4, 0, 2.0);
+            if (move.direction > 0) arrow.rotation.z = Math.PI / 2;
+            if (move.layer === -1) arrow.position.x = -2.4;
         } else if (move.axis === 'z') {
-            // Red (+Z)
-            arrow.position.set(0, 1.2, 2.0);
-            if (move.layer === -1) arrow.position.z = -2.4; // Orange Indicator
-            if (move.direction > 0) { // CW: +Y -> -X
-                arrow.rotation.z = Math.PI / 2;
-            } else { // CCW: -X -> +Y
-                arrow.rotation.z = 0;
-            }
+            arrow.position.set(2.0, 1.2, 0);
+            if (move.direction > 0) arrow.rotation.x = Math.PI / 2;
+            if (move.layer === -1) arrow.position.z = -2.4;
         }
 
         this.arrowGroup.add(arrow);
@@ -252,17 +295,37 @@ class RubiksCube {
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.cubies);
+
+        let intersects = this.raycaster.intersectObjects(this.cubies);
 
         this.selectedCubie = null;
         this.selectedFaceNormal = null;
 
         if (intersects.length > 0) {
-            this.selectedCubie = intersects[0].object as THREE.Mesh;
-            const face = intersects[0].face;
+            const intersect = intersects[0];
+            this.selectedCubie = intersect.object as THREE.Mesh;
+            this.intersectPoint.copy(intersect.point);
+            const face = intersect.face;
             if (face) {
                 this.selectedFaceNormal = face.normal.clone();
                 this.selectedFaceNormal.applyQuaternion(this.selectedCubie.quaternion);
+            }
+        } else {
+            intersects = this.raycaster.intersectObjects(this.offCubeZones);
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                this.intersectPoint.copy(intersect.point);
+                const zoneName = intersect.object.name;
+                if (zoneName === 'zone-yellow') {
+                    this.selectedFaceNormal = new THREE.Vector3(0, -1, 0);
+                    this.selectedCubie = { position: new THREE.Vector3(0, -1, 0) } as any;
+                } else if (zoneName === 'zone-orange') {
+                    this.selectedFaceNormal = new THREE.Vector3(-1, 0, 0);
+                    this.selectedCubie = { position: new THREE.Vector3(-1, 0, 0) } as any;
+                } else if (zoneName === 'zone-green') {
+                    this.selectedFaceNormal = new THREE.Vector3(0, 0, -1);
+                    this.selectedCubie = { position: new THREE.Vector3(0, 0, -1) } as any;
+                }
             }
         }
     }
@@ -275,7 +338,7 @@ class RubiksCube {
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         if (distance > 30) {
-            this.handleSlide(deltaX, deltaY);
+            this.handleSwipe(deltaX, deltaY);
             this.isMouseDown = false;
         }
     }
@@ -284,49 +347,59 @@ class RubiksCube {
         this.isMouseDown = false;
     }
 
-    handleSlide(deltaX: number, deltaY: number) {
-        let move: Move | null = null;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
+    handleSwipe(deltaX: number, deltaY: number) {
+        const swipeVector = new THREE.Vector2(deltaX, -deltaY).normalize();
 
-        if (this.selectedCubie && this.selectedFaceNormal) {
-            const pos = this.selectedCubie.position;
-            const normal = this.selectedFaceNormal;
+        if (!this.selectedCubie || !this.selectedFaceNormal) return;
 
-            if (normal.y > 0.5) { // White (+Y)
-                if (absX > absY) {
-                    move = { axis: 'z', layer: Math.round(pos.z), direction: deltaX > 0 ? 1 : -1 };
-                } else {
-                    move = { axis: 'x', layer: Math.round(pos.x), direction: deltaY > 0 ? 1 : -1 };
-                }
-            } else if (normal.z > 0.5) { // Red (+Z)
-                if (absX > absY) {
-                    move = { axis: 'y', layer: Math.round(pos.y), direction: deltaX > 0 ? 1 : -1 };
-                } else {
-                    move = { axis: 'x', layer: Math.round(pos.x), direction: deltaY > 0 ? 1 : -1 };
-                }
-            } else if (normal.x > 0.5) { // Blue (+X)
-                if (absX > absY) {
-                    move = { axis: 'y', layer: Math.round(pos.y), direction: deltaX > 0 ? 1 : -1 };
-                } else {
-                    move = { axis: 'z', layer: Math.round(pos.z), direction: deltaY > 0 ? 1 : -1 };
-                }
-            }
-        } else {
-            const startX = (this.mouseDownPos.x / window.innerWidth) * 2 - 1;
-            const startY = -(this.mouseDownPos.y / window.innerHeight) * 2 + 1;
+        const normal = this.selectedFaceNormal;
+        const cubiePos = this.selectedCubie.position;
 
-            if (startX > 0.4 && startY > 0.4) { // Top-Right -> Green Indicator
-                 move = { axis: 'z', layer: -1, direction: deltaY > 0 ? 1 : -1 };
-            } else if (startX < -0.4 && startY > 0.4) { // Top-Left -> Orange Indicator
-                 move = { axis: 'x', layer: -1, direction: deltaY > 0 ? 1 : -1 };
-            } else if (startY < -0.4) { // Bottom Area -> Yellow Indicator
-                 move = { axis: 'y', layer: -1, direction: deltaX > 0 ? 1 : -1 };
+        const possibleAxes: Axis[] = [];
+        if (Math.abs(normal.x) < 0.5) possibleAxes.push('x');
+        if (Math.abs(normal.y) < 0.5) possibleAxes.push('y');
+        if (Math.abs(normal.z) < 0.5) possibleAxes.push('z');
+
+        const results: { move: Move, dot: number }[] = [];
+
+        for (const axis of possibleAxes) {
+            for (const direction of [1, -1]) {
+                const moveDir = new THREE.Vector3();
+                const axisVec = new THREE.Vector3();
+                if (axis === 'x') axisVec.set(1, 0, 0);
+                if (axis === 'y') axisVec.set(0, 1, 0);
+                if (axis === 'z') axisVec.set(0, 0, 1);
+
+                moveDir.crossVectors(normal, axisVec).normalize();
+                moveDir.multiplyScalar(direction);
+
+                const p1 = this.intersectPoint.clone();
+                const p2 = this.intersectPoint.clone().add(moveDir.multiplyScalar(0.5));
+
+                const s1 = p1.project(this.camera);
+                const s2 = p2.project(this.camera);
+
+                const screenMove = new THREE.Vector2(s2.x - s1.x, s2.y - s1.y).normalize();
+                const dot = screenMove.dot(swipeVector);
+
+                let layer = 0;
+                if (axis === 'x') layer = Math.round(cubiePos.x);
+                if (axis === 'y') layer = Math.round(cubiePos.y);
+                if (axis === 'z') layer = Math.round(cubiePos.z);
+
+                results.push({ move: { axis, layer, direction }, dot });
             }
         }
 
-        if (move) {
-            this.performMove(move);
+        results.sort((a, b) => b.dot - a.dot);
+
+        // Ignore ambiguous moves: top match must be significantly better than second match
+        if (results.length > 0 && results[0].dot > 0.6) {
+            if (results.length > 1 && results[0].dot - results[1].dot < 0.15) {
+                console.log("Ambiguous swipe ignored", results[0].dot, results[1].dot);
+                return;
+            }
+            this.performMove(results[0].move);
         }
     }
 
@@ -443,9 +516,9 @@ class RubiksCube {
                 const progress = Math.min(elapsed / duration, 1);
                 const ease = progress * (2 - progress);
 
-                if (axis === 'x') sliceGroup.rotation.x = -ease * targetRotation;
-                if (axis === 'y') sliceGroup.rotation.y = -ease * targetRotation;
-                if (axis === 'z') sliceGroup.rotation.z = -ease * targetRotation;
+                if (axis === 'x') sliceGroup.rotation.x = ease * targetRotation;
+                if (axis === 'y') sliceGroup.rotation.y = ease * targetRotation;
+                if (axis === 'z') sliceGroup.rotation.z = ease * targetRotation;
 
                 if (progress < 1) {
                     requestAnimationFrame(animateRotation);
@@ -482,4 +555,4 @@ class RubiksCube {
     }
 }
 
-(window as any).rubiksCube = new RubiksCube();
+new RubiksCube();
