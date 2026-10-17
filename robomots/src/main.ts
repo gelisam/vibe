@@ -98,6 +98,13 @@ function shuffle<T>(a: T[]): T[] {
     return r;
 }
 
+function parseEntry(line: string): { spoken: string; word: string } {
+    const comma = line.indexOf(",");
+    if (comma < 0) return { spoken: line, word: line };
+    const word = line.slice(0, comma).trim();
+    return { spoken: line, word: word.length > 0 ? word : line };
+}
+
 function normalize(s: string): string {
     return s.trim().normalize("NFC").toLowerCase();
 }
@@ -233,10 +240,10 @@ function setupScreen() {
         if (!isNaN(v)) slider.value = String(Math.min(10, Math.max(1, Math.round(v))));
     };
     card.append(slider, num);
-    card.appendChild(el("label", "", "Liste de mots (un mot par ligne)"));
+    card.appendChild(el("label", "", "Liste de mots (un par ligne, ou une phrase « mot, comme dans ... »)"));
     const area = el("textarea");
     area.value = words.join("\n");
-    area.placeholder = "maison\nécole\nbeau\n...";
+    area.placeholder = "maison\nécole\npot, comme dans un pot de peinture\n...";
     card.appendChild(area);
     const err = el("div", "", "");
     err.style.color = "#b91c1c";
@@ -400,11 +407,12 @@ function startRace(playerIdx: number) {
 
     function askWord() {
         if (winner >= 0) return;
-        const word = nextWord();
+        const entry = parseEntry(nextWord());
+        const word = entry.word;
         panel.innerHTML = "";
         panel.appendChild(el("div", "", "Écoute le mot et écris-le :"));
         const again = el("button", "secondary", "🔊 Répéter");
-        again.onclick = () => speak(word);
+        again.onclick = () => speak(entry.spoken);
         panel.appendChild(again);
         const row = el("div", "row");
         const input = el("input");
@@ -426,7 +434,7 @@ function startRace(playerIdx: number) {
         };
         ok.onclick = submit;
         input.onkeydown = e => { if (e.key === "Enter") submit(); };
-        speak(word);
+        speak(entry.spoken);
         input.focus();
     }
 
