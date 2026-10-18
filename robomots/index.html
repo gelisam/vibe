@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robomots</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #eef3fb; color: #223; }
+#app { max-width: 700px; margin: 0 auto; padding: 12px 12px 60vh; }
+h1 { text-align: center; margin: 8px 0; }
+.card { background: white; border-radius: 12px; padding: 14px; margin: 10px 0; box-shadow: 0 2px 6px #0002; }
+button { font-size: 1.1rem; padding: 10px 18px; border: 0; border-radius: 8px; background: #3b82f6; color: white; cursor: pointer; }
+button.secondary { background: #64748b; }
+textarea, input[type=text], input[type=number] { font-size: 1.1rem; width: 100%; padding: 8px; border: 2px solid #cbd5e1; border-radius: 8px; }
+textarea { height: 140px; }
+input[type=range] { width: 100%; }
+label { display: block; font-weight: bold; margin: 10px 0 4px; }
+.track { background: #475569; border-radius: 8px; padding: 6px 0; }
+.lane { position: relative; height: 54px; border-bottom: 2px dashed #fff8; margin: 0 0; }
+.lane:last-child { border-bottom: 0; }
+.lane .start { position: absolute; left: 6%; top: 0; bottom: 0; border-left: 3px solid #fff; }
+.lane .finish { position: absolute; right: 6%; top: 0; bottom: 0; width: 12px;
+  background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px; }
+.robot { position: absolute; top: 2px; transform: translateX(-50%); text-align: center; font-size: 30px; line-height: 1; padding: 2px 4px; border-radius: 10px; }
+.robot small { display: block; font-size: 10px; color: white; white-space: nowrap; }
+.robot.mine small { font-weight: bold; }
+.robot.white { background: #fff; box-shadow: 0 0 12px 6px #fff; }
+.robot.white small { color: #223; }
+.robot.yellow { background: #facc15; box-shadow: 0 0 12px 6px #facc15; }
+.robot.yellow small { color: #223; }
+.robot.flicker { animation: flick 0.15s linear 7; }
+@keyframes flick { 50% { opacity: 0.1; } }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.choice { background: #f1f5f9; border: 3px solid transparent; border-radius: 10px; padding: 8px; text-align: center; cursor: pointer; }
+.choice.selected { border-color: #3b82f6; background: #dbeafe; }
+.choice .emoji { font-size: 32px; }
+.choice small { display: block; color: #475569; }
+.word { font-size: 1.6rem; letter-spacing: 2px; font-family: monospace; margin: 6px 0; }
+.del { background: #fca5a5; border-radius: 3px; }
+.add { background: #86efac; border-radius: 3px; }
+.bonus { background: #facc15; border-radius: 3px; }
+.row { display: flex; gap: 8px; margin-top: 10px; }
+.row input { flex: 1; }
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+.big { font-size: 1.4rem; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<canvas id="confetti"></canvas>
+<script src="bundle.js"></script>
+</body>
+</html>
