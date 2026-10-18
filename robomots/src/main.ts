@@ -313,9 +313,9 @@ function startRace(playerIdx: number) {
     const track = el("div", "track");
     app.appendChild(track);
 
-    const maxSpeed = Math.max(0.05, 0.2 + 0.1 * difficulty); // track units per second
+    const maxJump = Math.max(0.5, 2 + 0.4 * difficulty); // track units per completed word
     const fastest = Math.floor(Math.random() * ROBOTS.length);
-    const speeds = ROBOTS.map((_, i) => i === fastest ? maxSpeed : maxSpeed * (0.5 + Math.random() * 0.4));
+    const fastestIdx = fastest === playerIdx ? (fastest + 1) % ROBOTS.length : fastest;
     const pos = ROBOTS.map(() => 0);
     const nodes = ROBOTS.map((r, i) => {
         const m = makeLane(r, i === playerIdx);
@@ -326,7 +326,6 @@ function startRace(playerIdx: number) {
     const playerNode = nodes[playerIdx];
     let winner = -1;
     let animating = false;
-    let last = performance.now();
 
     function render() {
         nodes.forEach((n, i) => { n.style.left = posToLeft(pos[i]) + "%"; });
@@ -338,14 +337,29 @@ function startRace(playerIdx: number) {
         if (idx >= 0) { winner = idx; finish(); }
     }
 
-    function tick(now: number) {
-        if (winner >= 0) return;
-        const dt = (now - last) / 1000;
-        last = now;
-        ROBOTS.forEach((_, i) => { if (i !== playerIdx) pos[i] += speeds[i] * dt; });
-        render();
-        checkWinner();
-        requestAnimationFrame(tick);
+    // Opponents jump ahead by a random amount: the fastest by a difficulty-based
+    // amount, the others by a percentage of it.
+    function opponentsJump(): Promise<void> {
+        return new Promise(resolve => {
+            const from = pos.slice();
+            const amounts = ROBOTS.map((_, i) => {
+                if (i === playerIdx) return 0;
+                const base = maxJump * (0.5 + Math.random() * 0.5);
+                return i === fastestIdx ? base : base * (0.5 + Math.random() * 0.4);
+            });
+            const duration = 500;
+            const t0 = performance.now();
+            function f(now: number) {
+                if (winner >= 0) { resolve(); return; }
+                const t = Math.min(1, (now - t0) / duration);
+                ROBOTS.forEach((_, i) => { if (i !== playerIdx) pos[i] = from[i] + amounts[i] * t; });
+                render();
+                checkWinner();
+                if (t < 1) requestAnimationFrame(f);
+                else resolve();
+            }
+            requestAnimationFrame(f);
+        });
     }
 
     // Steps the player forward, stopping early if the race ends.
@@ -495,12 +509,13 @@ function startRace(playerIdx: number) {
             }
         }
         if (winner >= 0) return;
+        await opponentsJump();
+        if (winner >= 0) return;
         await sleep(isCorrect ? 400 : 2500);
         askWord();
     }
 
     render();
-    requestAnimationFrame(t => { last = t; tick(t); });
     askWord();
 }
 
