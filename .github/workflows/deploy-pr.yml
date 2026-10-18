@@ -65,6 +65,7 @@ jobs:
     - name: Build and deploy changed projects
       id: build_deploy
       run: |
+        PR_NUMBER="${{ github.event.pull_request.number }}"
         DEPLOYED_PROJECTS=""
         for PROJECT in ${{ needs.detect.outputs.projects }}; do
           if [ -f "$PROJECT/package.json" ]; then
@@ -74,7 +75,7 @@ jobs:
             npm run build
 
             echo "Deploying $PROJECT..."
-            DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip"
+            DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip-$PR_NUMBER"
             ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $DEPLOY_DIR"
             if [ -n "$(ls -A dist 2>/dev/null)" ]; then
               scp -r dist/* ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:"$DEPLOY_DIR/"
@@ -91,8 +92,9 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
+          const prNumber = '${{ github.event.pull_request.number }}';
           const deployedProjects = '${{ steps.build_deploy.outputs.deployed_projects }}'.trim().split(/\s+/).filter(Boolean);
-          const urls = deployedProjects.map(p => `- 📱 **${p}**: ${{ secrets.BASE_URL }}/${p}-wip`).join('\n');
+          const urls = deployedProjects.map(p => `- 📱 **${p}**: ${{ secrets.BASE_URL }}/${p}-wip-${prNumber}`).join('\n');
 
           github.rest.issues.createComment({
             issue_number: context.issue.number,

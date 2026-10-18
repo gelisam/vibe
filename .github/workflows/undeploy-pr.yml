@@ -54,8 +54,9 @@ jobs:
 
     - name: Remove WIP deployments
       run: |
+        PR_NUMBER="${{ github.event.pull_request.number }}"
         for PROJECT in ${{ needs.detect.outputs.projects }}; do
-          DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip"
+          DEPLOY_DIR="${{ secrets.DEPLOY_BASE_PATH }}/$PROJECT-wip-$PR_NUMBER"
           echo "Removing $DEPLOY_DIR..."
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "rm -rf $DEPLOY_DIR"
         done
